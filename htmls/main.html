@@ -1,12 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>botLiterario</title>
-        <link href="css/style.css" rel="stylesheet">
-    </head>
-    <body>
-    
-    </body>
+
+<head>
+    <script src="static/htmx.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>botLiterario</title>
+    <link href="static/style.css" rel="stylesheet">
+</head>
+
+<body>
+    <form hx-post="/audio">
+        <input type="file" name="file" value="">
+        <input type="submit" name="" value="">
+    </form>
+    <form hx-post="/prompt">
+        <label>prompt:<input type="text" name="prompt" value=""></label>
+        <input type="submit" name="" value="">
+    </form>
+</body>
+
 </html>
