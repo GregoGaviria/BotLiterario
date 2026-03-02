@@ -34,3 +34,6 @@ go.work.sum
 #almacenamiento de audios
 audioFiles/
 transcript.txt
+
+#pycache
+__pycache__/

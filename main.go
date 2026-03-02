@@ -70,7 +70,7 @@ func handlePrompt(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no hay prompt", http.StatusBadRequest)
 		return
 	}
-	response, err := http.Get("localhost:8090?prompt=" + prompt)
+	response, err := http.Get("http://127.0.0.1:8090?prompt=" + prompt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
