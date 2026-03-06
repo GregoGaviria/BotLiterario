@@ -99,7 +99,9 @@ func main() {
 	http.HandleFunc("/audio", handleFile)
 	http.HandleFunc("/prompt", handlePrompt)
 	http.HandleFunc("/", handleHome)
-	err := http.ListenAndServe(":8000", nil)
+	port := ":8000"
+	log.Print("corriendo servidor en puerto " + port)
+	err := http.ListenAndServe(port, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
