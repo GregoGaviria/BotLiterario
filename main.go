@@ -36,7 +36,8 @@ func handleFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer file.Close()
-	dst, err := os.Create("./audioFiles/" + time.Now().String() + fileHeader.Filename)
+	filename := "./audioFiles/" + time.Now().String() + fileHeader.Filename
+	dst, err := os.Create(filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -48,15 +49,20 @@ func handleFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	cmd := exec.Command("python", "LoadAudio.py")
-	if err := cmd.Start(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	cmd := exec.Command("python", "LoadAudio.py", "-f", filename)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		http.Error(w, err.Error()+" "+string(output), http.StatusInternalServerError)
 		return
 	}
-	if err := cmd.Wait(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// if err := cmd.Start(); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// if err := cmd.Wait(); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 	w.Write([]byte("cargando audio..."))
 }
 
