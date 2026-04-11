@@ -7,6 +7,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
+Masterprompt = "Eres un asistente de inteligencia artificial que responde a preguntas de forma clara, breve y precisa. Si no sabes la respuesta, di que no lo sabes."
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4")
 
