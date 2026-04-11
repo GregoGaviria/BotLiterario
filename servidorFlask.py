@@ -1,39 +1,63 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from openai import OpenAI
 from dotenv import load_dotenv
-from llama_index.core import VectorStoreIndex, Document
 import os
 
 load_dotenv()
+
 app = Flask(__name__)
 
-# Variables globales simples para prueba local
-index = None
-chat_engine = None
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4")
 
 
-@app.route("/")
-def prompt_placeholder():
-    prompt = request.args.get("prompt")
-    return prompt or "No prompt received"
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "ok": True,
+        "message": "Servidor Flask funcionando correctamente."
+    })
 
 
-async def Llamacall(texto: str):
-    global index, chat_engine
+@app.route("/ask", methods=["POST"])
+def ask_openai():
+    try:
+        data = request.get_json()
 
-    documents = [Document(text=texto)]
-    index = VectorStoreIndex.from_documents(documents)
-    chat_engine = index.as_chat_engine()
+        if not data:
+            return jsonify({
+                "ok": False,
+                "error": "No se recibió JSON en la petición."
+            }), 400
 
+        prompt = data.get("prompt", "").strip()
 
-async def Llamatalk(text: str):
-    global chat_engine
+        if not prompt:
+            return jsonify({
+                "ok": False,
+                "error": "El campo 'prompt' es obligatorio."
+            }), 400
 
-    if chat_engine is None:
-        return "No hay chat Engine, primero hay que mandar un archivo"
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": "Responde de forma clara, breve y precisa."},
+                {"role": "user", "content": prompt}
+            ]
+        )
 
-    response = chat_engine.chat(text)
-    return str(response)
+        return jsonify({
+            "ok": True,
+            "model": MODEL,
+            "answer": response.choices[0].message.content
+        })
+
+    except Exception as error:
+        return jsonify({
+            "ok": False,
+            "error": str(error)
+        }), 500
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8090)
+    app.run(debug=True, host="127.0.0.1", port=5000)
