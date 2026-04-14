@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -127,12 +129,65 @@ func handleProgress(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 	} else {
+		file, err := os.ReadFile("transcript.txt")
+		if err != nil {
+			log.Fatal(err)
+		}
+		reqbody := struct {
+			Transcript string `json:"transcript"`
+		}{Transcript: string(file)}
+		jsonByte, err := json.Marshal(reqbody)
+		if err != nil {
+			log.Fatal(err)
+		}
+		response, err := http.Post(
+			"http://127.0.0.1:5000/set-context",
+			"application/json",
+			bytes.NewBuffer(jsonByte),
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		bodyStruct := struct {
+			Characters int    `json:"characters"`
+			Message    string `json:"message"`
+			Ok         bool   `json:"ok"`
+			Session_id string `json:"session_id"`
+		}{}
+		if err := json.Unmarshal(body, &bodyStruct); err != nil {
+			log.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode > 299 {
+			errstring := fmt.Sprintf(
+				"statuscode %d: body: %s",
+				response.StatusCode,
+				string(body),
+			)
+			http.Error(w, errstring, http.StatusInternalServerError)
+			return
+		}
+
+		sessionId = bodyStruct.Session_id
+		log.Println(sessionId)
+		log.Println(bodyStruct.Characters)
+		log.Println(bodyStruct.Ok)
+		log.Println(bodyStruct.Message)
+
 		t := template.Must(template.ParseFiles("htmls/loadprompt.html"))
 		if err := t.Execute(w, nil); err != nil {
 			log.Fatal(err)
 		}
 	}
 }
+
+var sessionId string
 
 func handleLoadPrompt(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -151,12 +206,27 @@ func handlePrompt(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+
 	prompt := r.FormValue("prompt")
 	if prompt == "" {
 		http.Error(w, "no hay prompt", http.StatusBadRequest)
 		return
 	}
-	response, err := http.Get("http://127.0.0.1:8090?prompt=" + prompt)
+	reqbody := struct {
+		Question   string `json:"question"`
+		Session_id string `json:"session_id"`
+	}{Question: prompt, Session_id: sessionId}
+	log.Println(reqbody.Question)
+	log.Println(reqbody.Session_id)
+	jsonByte, err := json.Marshal(reqbody)
+	if err != nil {
+		log.Fatal(err)
+	}
+	response, err := http.Post(
+		"http://127.0.0.1:5000/ask",
+		"application/json",
+		bytes.NewBuffer(jsonByte),
+	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -165,6 +235,15 @@ func handlePrompt(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	bodyStruct := struct {
+		Answer     string    `json:"answer"`
+		Model      string `json:"model"`
+		Ok         bool   `json:"ok"`
+		Session_id string `json:"session_id"`
+	}{}
+	if err := json.Unmarshal(body, &bodyStruct); err != nil {
+		log.Fatal(err)
 	}
 	response.Body.Close()
 	if response.StatusCode > 299 {
@@ -176,7 +255,34 @@ func handlePrompt(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errstring, http.StatusInternalServerError)
 		return
 	}
-	w.Write(body)
+
+	log.Println(bodyStruct.Answer)
+	log.Println(bodyStruct.Ok)
+	log.Println(bodyStruct.Model)
+
+	t := template.Must(template.ParseFiles("htmls/message.html"))
+	if err := t.Execute(
+		w,
+		struct{
+			U string
+			C string
+		}{
+			U: reqbody.Question,
+			C:bodyStruct.Answer,
+		},
+	); err != nil {
+		log.Fatal(err)
+	}
+	// response.Body.Close()
+	// if response.StatusCode > 299 {
+	// 	errstring := fmt.Sprintf(
+	// 		"statuscode %d: body: %s",
+	// 		response.StatusCode,
+	// 		string(body),
+	// 	)
+	// 	http.Error(w, errstring, http.StatusInternalServerError)
+	// 	return
+	// }
 }
 
 func main() {

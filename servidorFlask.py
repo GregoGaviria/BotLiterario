@@ -74,8 +74,13 @@ def set_context():
 
 @app.route("/ask", methods=["POST"])
 def ask():
+    # print("ask")
+    # print(request.data)
+    # print(request.headers)
+    # print(request.__dict__)
     try:
         data = request.get_json(silent=True)
+        # print(data)
 
         if not data:
             return jsonify({
