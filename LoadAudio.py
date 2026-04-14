@@ -7,7 +7,7 @@ args = parser.parse_args()
 filename = args.filename
 
 model = whisper.load_model("turbo")
-result = model.transcribe(filename)
+result = model.transcribe(filename,verbose=True)
 
 with open("transcript.txt", "w+") as f:
     f.write(result["text"])
