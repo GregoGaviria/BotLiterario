@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+var doneflag = false
+var processingflag = false
+
 func handleHome(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.ParseFiles("htmls/main.html"))
 	if err := t.Execute(w, nil); err != nil {
@@ -49,21 +52,98 @@ func handleFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	cmd := exec.Command("python", "LoadAudio.py", "-f", filename)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		http.Error(w, err.Error()+" "+string(output), http.StatusInternalServerError)
+	go func(filename string) {
+		if processingflag == true {
+			log.Println("already loading")
+			return
+		}
+		doneflag = false
+		processingflag = true
+
+		cmd := exec.Command("python", "LoadAudio.py", "-f", filename)
+		// cmd := exec.Command("whisper", filename, "--model", "turbo")
+
+		// cmd.Stdout = buff
+		// cmd.Stderr = buff
+
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		// output, err := cmd.CombinedOutput()
+		// if err != nil {
+		// 	http.Error(w, err.Error()+" "+string(output), http.StatusInternalServerError)
+		// 	return
+		// }
+		// log.Println(string(output))
+
+		if err := cmd.Start(); err != nil {
+			log.Fatal(err)
+			// http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := cmd.Wait(); err != nil {
+			log.Fatal(err)
+			// http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		log.Println("completo")
+		doneflag = true
+		processingflag = false
+	}(filename)
+
+	// w.Write([]byte("cargando audio..."))
+	t := template.Must(template.ParseFiles("htmls/loading.html"))
+	dots = 1
+	if err := t.Execute(w, "⋯"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+var dots int
+
+func handleProgress(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	// if err := cmd.Start(); err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-	// if err := cmd.Wait(); err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-	w.Write([]byte("cargando audio..."))
+	if !doneflag {
+		var icon string
+		switch dots {
+		case 0:
+			icon = "⋯"
+			dots++
+		case 1:
+			icon = "⋱"
+			dots++
+		case 2:
+			icon = "⋮"
+			dots++
+		case 3:
+			icon = "⋰"
+			dots = 0
+		}
+		t := template.Must(template.ParseFiles("htmls/loading.html"))
+		if err := t.Execute(w, icon); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		t := template.Must(template.ParseFiles("htmls/loadprompt.html"))
+		if err := t.Execute(w, nil); err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func handleLoadPrompt(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	t := template.Must(template.ParseFiles("htmls/prompt.html"))
+	if err := t.Execute(w, nil); err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func handlePrompt(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +184,8 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/audio", handleFile)
 	http.HandleFunc("/prompt", handlePrompt)
+	http.HandleFunc("/progress", handleProgress)
+	http.HandleFunc("/loadPrompt", handleLoadPrompt)
 	http.HandleFunc("/", handleHome)
 	port := ":8000"
 	log.Print("corriendo servidor en puerto " + port)
