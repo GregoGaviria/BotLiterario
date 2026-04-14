@@ -1,0 +1,30 @@
+<div class="chat-container">
+    <div class="chat-header">
+        <button class="back-button" onclick="window.location.href='main.html'">← Back to Main</button>
+        <h1>🎧 Audio Chat</h1>
+        <p>Ask me about the call</p>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+        <div class="message bot">
+            Hello! I'm your call center assistant. Ask me anything about the uploaded MP3 call recording.
+        </div>
+    </div>
+
+    <form hx-post="/prompt" hx-target="#chat-messages" hx-swap="beforeend" hx-on::after-request="this.reset()">
+        <div class="input-group">
+            <input type="text" name="prompt" placeholder="Ask me about the call recording..." autocomplete="off">
+            <button type="submit">Send</button>
+        </div>
+    </form>
+</div>
+
+<!-- <script> -->
+<!--     if (sessionStorage.getItem('audioUploaded') !== 'true') { -->
+<!--         const messageDiv = document.getElementById('chat-messages'); -->
+<!--         const warningMsg = document.createElement('div'); -->
+<!--         warningMsg.className = 'message bot'; -->
+<!--         warningMsg.innerHTML = '⚠️ No audio file detected. Please go back to <a href="main.html" style="color: #2C5F2D;">upload an MP3 call recording</a> first.'; -->
+<!--         messageDiv.appendChild(warningMsg); -->
+<!--     } -->
+<!-- </script> -->

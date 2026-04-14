@@ -5,19 +5,25 @@
     <script src="static/htmx.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>botLiterario</title>
-    <link href="static/style.css" rel="stylesheet">
+    <title>call center review</title>
+    <link href="static/main.css" rel="stylesheet">
 </head>
 
 <body>
-    <form hx-post="/audio" hx-encoding="multipart/form-data">
-        <input type="file" name="file" value="">
-        <input type="submit" name="" value="">
-    </form>
-    <form hx-post="/prompt">
-        <label>prompt:<input type="text" name="prompt" value=""></label>
-        <input type="submit" name="" value="">
-    </form>
+    <div id="outerDIV">
+        <form 
+            class="elInputdelAudio"
+            hx-post="/audio" hx-encoding="multipart/form-data" hx-target="#success-message" hx-swap="outerHTML">
+
+            <h2 class="h2deaudio">Call Center Call Review</h2>
+            <p class="form-description">
+                Upload the call you want to review
+            </p>
+            <input class="inputdeAudio" type="file" name="file" value="" accept=".mp3,audio/mpeg,audio/*">
+            <input class="inputdeAudio " type="submit" name="" value="Submit File">
+        </form>
+        <div id="success-message" class="success-message" style="display: none;"></div>
+    </div>
 </body>
 
 </html>
